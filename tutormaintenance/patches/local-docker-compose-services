@@ -1,0 +1,3 @@
+maintenance:
+  image: {{ MAINTENANCE_DOCKER_IMAGE }}
+  restart: unless-stopped
