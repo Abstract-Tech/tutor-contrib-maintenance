@@ -1,0 +1,58 @@
+name: Build and push maintenance image
+
+on:
+  push:
+    branches:
+      - main
+      - release
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Tutor v22 and the plugin
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          tutor plugins enable maintenance
+          tutor config save
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the maintenance image
+        env:
+          MAINTENANCE_VERSION: ${{ steps.image-tag.outputs.value }}
+        run: |
+          tutor config save --set MAINTENANCE_VERSION="${MAINTENANCE_VERSION}"
+          tutor images build maintenance
+          tutor images push maintenance
