@@ -218,17 +218,32 @@ for path in glob(str(importlib_resources.files("tutormaintenance") / "patches" /
 # other plugin -- with no need to know their names, and takes effect
 # instantly with no restart.
 #
-# "on" grabs the currently configured listen addresses and replaces the
-# server's routes with a single catch-all reverse_proxy to the maintenance
-# container. "off" just re-adapts the Caddyfile on disk and reloads that,
-# which is always the source of truth, so no state needs to be saved.
+# "on" inserts a single terminal catch-all reverse_proxy route in FRONT of
+# the srv0 server's existing routes, via a targeted PUT to routes/0 -- it
+# does not touch or replace the existing routes.
+#
+# The existing routes must be left alone because Caddy's automatic HTTPS
+# re-provisions the server's TLS connection policies from the *current*
+# routes on every config change: it scans each route's host matcher to know
+# which domain to select a certificate for. Replace the routes array with a
+# matcher-less catch-all (whether via /load or a targeted PATCH to `routes`)
+# and that scan comes up empty, so Caddy installs a TLS policy with no
+# certificate for the domain -- the handshake fails with
+# ERR_SSL_PROTOCOL_ERROR. Invisible locally on plain HTTP; fatal in
+# production behind real certs. Inserting ahead of the existing routes
+# instead keeps their host matchers in place for that scan, while still
+# winning every request first because it's marked terminal.
+#
+# "off" just re-adapts the Caddyfile on disk and reloads that in full, which
+# is always the source of truth (and never had the inserted route), so no
+# state needs to be saved or removed.
 
 _MAINTENANCE_ON_SCRIPT = """set -e
-listen=$(wget -qO- http://127.0.0.1:2019/config/apps/http/servers/srv0/listen)
-printf '{"apps":{"http":{"servers":{"srv0":{"listen":%s,"routes":[{"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"maintenance:80"}]}]}]}}}}}' "$listen" \\
+printf '{"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"maintenance:80"}]}],"terminal":true}' \\
     > /tmp/tutor-maintenance-on.json
-wget -qO- --header='Content-Type: application/json' \\
-    --post-file=/tmp/tutor-maintenance-on.json http://127.0.0.1:2019/load
+curl -sf -X PUT -H 'Content-Type: application/json' \\
+    --data @/tmp/tutor-maintenance-on.json \\
+    http://127.0.0.1:2019/config/apps/http/servers/srv0/routes/0
 """
 
 _MAINTENANCE_OFF_SCRIPT = """set -e
