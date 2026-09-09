@@ -34,8 +34,12 @@ hooks.Filters.CONFIG_DEFAULTS.add_items(
         ),
         # Favicon and background image. Default to the images bundled in the
         # maintenance image itself; override with any URL (e.g. a CDN-hosted
-        # image) to skip rebuilding the image just to change them.
-        ("MAINTENANCE_FAVICON_URL", "assets/favicon.ico"),
+        # image) to skip rebuilding the image just to change them. Root-
+        # relative by default since the maintenance page is served for
+        # every request path (caddy's try_files falls back to it without a
+        # redirect), so a path-relative URL would resolve against whatever
+        # page the visitor was on instead of the maintenance image.
+        ("MAINTENANCE_FAVICON_URL", "/assets/favicon.ico"),
         # Relative to the stylesheet (assets/style.css), unlike the favicon
         # URL above which is relative to the page; both default to pointing
         # at the same bundled image.
