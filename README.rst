@@ -1,6 +1,8 @@
 Maintenance plugin for `Tutor <https://docs.tutor.edly.io>`__
 #############################################################
 
+|pypi-badge| |ci-badge| |license-badge|
+
 A Tutor plugin that puts a "down for maintenance" page in front of an Open
 edX platform, on demand, without needing to know every domain your other
 Tutor plugins have registered with Caddy.
@@ -130,3 +132,16 @@ License
 *******
 
 This software is licensed under the terms of the AGPLv3.
+
+
+.. |ci-badge| image:: https://github.com/Abstract-Tech/tutor-contrib-maintenance/workflows/Python%20CI/badge.svg?branch=main
+    :target: https://github.com/Abstract-Tech/tutor-contrib-maintenance/actions
+    :alt: CI
+
+.. |license-badge| image:: https://img.shields.io/github/license/Abstract-Tech/tutor-contrib-maintenance.svg
+    :target: https://github.com/Abstract-Tech/tutor-contrib-maintenance/blob/main/LICENSE.txt
+    :alt: License
+
+.. |pypi-badge| image:: https://img.shields.io/pypi/v/tutor-contrib-maintenance.svg
+    :target: https://pypi.org/project/tutor-contrib-maintenance/
+    :alt: PyPI
